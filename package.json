@@ -1,102 +1,45 @@
-const { app, BrowserWindow, ipcMain, dialog, protocol } = require('electron');
-const path = require('path');
-const fs   = require('fs');
-const url  = require('url');
-
-const STORE_PATH = path.join(app.getPath('userData'), 'psonco-config.json');
-
-function loadConfig() {
-  try { return JSON.parse(fs.readFileSync(STORE_PATH, 'utf8')); }
-  catch { return {}; }
+{
+  "name": "ps-oncologia",
+  "version": "1.0.0",
+  "description": "PS Oncologia — Raccolta dati Pronto Soccorso Oncologico",
+  "main": "main.js",
+  "author": "Reparto Oncologia",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "it.ospedale.ps-oncologia",
+    "productName": "PS Oncologia",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        { "target": "portable", "arch": ["x64"] },
+        { "target": "nsis",     "arch": ["x64"] }
+      ],
+      "icon": "src/ps_oncologia.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "src/ps_oncologia.ico",
+      "installerHeaderIcon": "src/ps_oncologia.ico",
+      "createDesktopShortcut": true,
+      "shortcutName": "PS Oncologia"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*"
+    ]
+  }
 }
-
-function saveConfig(cfg) {
-  fs.writeFileSync(STORE_PATH, JSON.stringify(cfg, null, 2), 'utf8');
-}
-
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 900,
-    minHeight: 600,
-    title: 'PS Oncologia',
-    icon: path.join(__dirname, 'src', 'ps_oncologia.ico'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      webSecurity: false,
-    }
-  });
-
-  // Carica usando URL assoluto costruito da __dirname
-  const htmlPath = url.format({
-    pathname: path.join(__dirname, 'src', 'ps_oncologia.html'),
-    protocol: 'file:',
-    slashes: true
-  });
-
-  win.loadURL(htmlPath);
-  win.setMenuBarVisibility(false);
-
-  win.webContents.on('did-fail-load', (_e, code, desc) => {
-    console.error('Load failed:', code, desc, htmlPath);
-    win.webContents.openDevTools();
-  });
-}
-
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
-
-// ── IPC handlers ─────────────────────────────────────────────────────────────
-
-ipcMain.handle('get-data-folder', () => {
-  return loadConfig().dataFolder || null;
-});
-
-ipcMain.handle('select-data-folder', async (event) => {
-  const win = BrowserWindow.fromWebContents(event.sender);
-  const result = await dialog.showOpenDialog(win, {
-    title: 'Seleziona cartella dati PS Oncologia',
-    properties: ['openDirectory'],
-    buttonLabel: 'Seleziona cartella'
-  });
-  if (result.canceled || !result.filePaths.length) return null;
-  const folder = result.filePaths[0];
-  const cfg = loadConfig();
-  cfg.dataFolder = folder;
-  saveConfig(cfg);
-  return folder;
-});
-
-ipcMain.handle('read-json', (_e, folder, filename) => {
-  try {
-    const fp = path.join(folder, filename);
-    if (!fs.existsSync(fp)) return null;
-    return fs.readFileSync(fp, 'utf8');
-  } catch { return null; }
-});
-
-ipcMain.handle('write-json', (_e, folder, filename, content) => {
-  try {
-    fs.writeFileSync(path.join(folder, filename), content, 'utf8');
-    return true;
-  } catch { return false; }
-});
-
-ipcMain.handle('delete-file', (_e, folder, filename) => {
-  try {
-    const fp = path.join(folder, filename);
-    if (fs.existsSync(fp)) fs.unlinkSync(fp);
-    return true;
-  } catch { return false; }
-});
-
-ipcMain.handle('file-exists', (_e, folder, filename) => {
-  try { return fs.existsSync(path.join(folder, filename)); }
-  catch { return false; }
-});
