@@ -1,29 +1,35 @@
-/**
- * preload.js
- * Espone al codice HTML/JS dell'app un oggetto `window.electronFS`
- * che sostituisce la File System Access API del browser con
- * chiamate native al file system tramite IPC Electron.
- */
-const { contextBridge, ipcRenderer } = require('electron');
+name: Build PS Oncologia
 
-contextBridge.exposeInMainWorld('electronFS', {
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
-  // Restituisce il percorso cartella dati salvato (o null se non ancora scelto)
-  getDataFolder: () => ipcRenderer.invoke('get-data-folder'),
+jobs:
+  build:
+    runs-on: windows-latest
 
-  // Apre la finestra di dialogo di selezione cartella e salva la scelta
-  selectDataFolder: () => ipcRenderer.invoke('select-data-folder'),
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-  // Legge un file dalla cartella dati
-  readJson: (folder, filename) => ipcRenderer.invoke('read-json', folder, filename),
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
 
-  // Scrive un file nella cartella dati
-  writeJson: (folder, filename, content) => ipcRenderer.invoke('write-json', folder, filename, content),
+      - name: Install dependencies
+        run: npm install
 
-  // Elimina un file dalla cartella dati
-  deleteFile: (folder, filename) => ipcRenderer.invoke('delete-file', folder, filename),
+      - name: Build Windows executable
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  // Verifica esistenza file
-  fileExists: (folder, filename) => ipcRenderer.invoke('file-exists', folder, filename),
-
-});
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS-Oncologia-Windows
+          path: |
+            dist/*.exe
+          retention-days: 30
