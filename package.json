@@ -18,6 +18,7 @@
     "appId": "it.ospedale.ps-oncologia",
     "productName": "PS Oncologia",
     "asar": false,
+    "icon": "src/ps_oncologia.ico",
     "directories": {
       "output": "dist"
     },
@@ -25,14 +26,11 @@
       "target": [
         { "target": "portable", "arch": ["x64"] },
         { "target": "nsis",     "arch": ["x64"] }
-      ],
-      "icon": "src/ps_oncologia.ico"
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "installerIcon": "src/ps_oncologia.ico",
-      "installerHeaderIcon": "src/ps_oncologia.ico",
       "createDesktopShortcut": true,
       "shortcutName": "PS Oncologia"
     },
